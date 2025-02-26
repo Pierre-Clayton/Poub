@@ -1,4 +1,12 @@
+# Python & virtualenv
 __pycache__/
 venv/
 Old/
 backend/.env
+backend/serviceAccountKey.json
+
+# Node & frontend
+node_modules/
+dist/
+.vite/
+frontend/src/firebaseConfig.js

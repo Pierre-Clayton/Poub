@@ -219,7 +219,7 @@ backend/
 
 ## Contact / Contribution
 
-- **Full-Stack Engineer**: Feel free to build a **front-end** that calls these endpoints for user uploads and queries.  
+- **Full-Stack Engineer**: Implement the CI/CD logic and deploy the app on AWS. Feel free to build a **front-end** that calls these endpoints for user uploads and queries.  
 - **Data Scientist** (current tasks): This is the person working on ingestion, embeddings, and retrieval logic.  
 - **Project Manager**: Overseeing daily tasks, verifying we meet MVP milestones.
 
