@@ -1,0 +1,280 @@
+/* Import de la police moderne Roboto */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+/* RESET & GLOBAL */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Roboto', "Helvetica Neue", Arial, sans-serif; /* Assurez-vous que cette ligne est bien présente */
+  font-size: 1rem; /* Taille de texte augmentée */
+  background-color: #f8f9fb;
+  color: #333;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* NAVBAR - version fixe */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    background: #fff;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  /* Augmentation de la taille de la police pour le lien dans la navbar */
+  .nav-left a {
+    font-size: 1.75rem;
+    font-weight: bold;
+  }
+.nav-right button {
+  padding: 0.5rem 1rem;
+  background: #3162ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.nav-right button:hover {
+  background: #254eda;
+}
+
+/* FOOTER */
+.site-footer {
+  background: #fff;
+  padding: 2rem;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  margin-top: 2rem;
+}
+.footer-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+.footer-stats div {
+  text-align: center;
+}
+.footer-stats h3 {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+.footer-bottom {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* MARKETING HOMEPAGE */
+main {
+  padding: 2rem 1rem;
+}
+
+/* HEADER MODIFIÉ */
+.home-header {
+  text-align: center;
+  padding: 14rem 2rem; /* Header agrandi */
+  background: url('/assets/1022_768.png') no-repeat center center;
+  background-size: cover;
+  color: #ffffff;
+}
+.home-header h1 {
+  font-size: 4rem;
+  margin-bottom: 0.5rem;
+}
+.home-header p {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+.home-header button {
+  padding: 1rem 2rem;
+  background: #3162ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.home-header button:hover {
+  background: #254eda;
+}
+
+/* FORM ELEMENTS */
+input, select, textarea, button {
+  font-size: 1rem;
+}
+
+/* LOGIN / WEBAPP PAGES */
+.login-page, .upload-page, .quiz-page, .chat-page {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  text-align: center;
+}
+.login-card input, .login-card button {
+  width: 100%;
+  margin-bottom: 0.75em;
+  padding: 0.75em;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.toggle-btn {
+  background: none;
+  border: none;
+  color: #3162ff;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.error-message {
+  color: red;
+}
+
+/* MBTI QUIZ */
+.quiz-container {
+  text-align: left;
+}
+.quiz-question {
+  margin-bottom: 1.1em;
+}
+.options {
+  display: flex;
+  gap: 1em;
+}
+.submit-btn {
+  padding: 0.75rem 1.5rem;
+  background: #3162ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.quiz-result {
+  margin-top: 1em;
+  font-size: 0.9rem;
+}
+
+/* CHAT PAGE */
+.chat-log {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 1rem;
+  height: 300px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  background: #fff;
+}
+.chat-message {
+  margin-bottom: 0.75em;
+  text-align: left;
+}
+.chat-input {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+.chat-input input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.chat-input button {
+  padding: 0.75rem 1.1rem;
+  background: #3162ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+}
+
+.flexible-plans {
+    padding: 2rem;
+    background: #e0e0e0;
+    font-family: 'Roboto', "Helvetica Neue", Arial, sans-serif;
+  }
+  
+  .flexible-plans h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    color: #333;
+  }
+  
+  .plans-container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .plan-card {
+    border-radius: 12px;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #ffffff, #f9f9f9);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    text-align: center;
+    flex: 1 1 250px;
+    cursor: pointer;
+  }
+  
+  .plan-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+  
+  .plan-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #3162ff;
+  }
+  
+  .plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    text-align: left;
+  }
+  
+  .plan-features li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 0.5rem;
+  }
+  
+  .plan-features li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #3162ff;
+    font-size: 1.2rem;
+    line-height: 1.5;
+  }
+  
+  .plan-card h2,
+  .plan-card h4 {
+    font-size: 2rem;
+    margin-top: 1rem;
+    color: #3162ff;
+  }
+  
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

@@ -40,8 +40,8 @@ def chat_with_llm(
     base_prompt = PROMPT_TEMPLATES.get(question_type, PROMPT_TEMPLATES["default"])
     personality_type = personality_store.get(user_id)
     if personality_type:
-        base_prompt += f"\nRemember: The user has MBTI type {personality_type}. " \
-                       "Adjust your style accordingly.\n"
+        base_prompt += f"\nRemember: The user has personality type matching the following description: {personality_type}. " \
+                       "Adjust your style accordingly, to make it the most impactful and useful for his type of personality.\n"
 
     system_message = base_prompt + "\n=== FAISS Context ===\n" + context_text
 

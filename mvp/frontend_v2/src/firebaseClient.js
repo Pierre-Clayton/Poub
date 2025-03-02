@@ -1,6 +1,3 @@
-// Minimal Firebase client config
-// Replace with your own config from the Firebase console
-
 import { initializeApp } from "firebase/app";
 import { 
   getAuth, 

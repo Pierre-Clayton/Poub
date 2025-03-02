@@ -249,7 +249,7 @@ def submit_personality(
     user_id: str = Depends(verify_firebase_token)
 ):
     """
-    Directly sets the user's MBTI type (e.g. 'INTJ') in personality_store.
+    Directly sets the user's personality description in personality_store.
     """
     personality_store[payload.user_id] = payload.personality_type
     return {
