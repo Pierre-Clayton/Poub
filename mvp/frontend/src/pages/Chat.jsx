@@ -124,7 +124,9 @@ export default function Chat({ token }) {
             background: msg.role === "assistant" ? "#f8f9fb" : "#e6f2ff",
             borderRadius: "8px"
           }}>
-            <strong style={{ textTransform: "capitalize" }}>{msg.role}:</strong>{" "}
+            <strong style={{ textTransform: "capitalize" }}>
+              {msg.role === "assistant" ? "ProjectPath LM" : "You"}:
+            </strong>{" "}
             <ReactMarkdown>{msg.content}</ReactMarkdown>
           </div>
         ))}
