@@ -1,31 +1,28 @@
 # mvp/backend/app.py
 
 import os
-from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, File, UploadFile, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
 import openai
 
-# Firebase
+# Firebase et authentification
 from firebase_config import auth
 from firebase_admin._auth_utils import InvalidIdTokenError
 
-# Data ingestion & retrieval
+# Ingestion et récupération
 from data_ingestion.pdf_ingestion import parse_pdf
 from data_ingestion.csv_ingestion import parse_csv
 from retrieval.faiss_store import faiss_store
 from retrieval.embeddings import batch_get_embeddings, get_embedding
 
-# Chat, MBTI, modèles
+# Modèles et services
 from models.chat_models import AskQuery
 from services.chat_service import chat_with_llm
 from models.mbti_models import MBTIQuizResponse
 from services.mbti_service import get_mbti_questions, process_quiz_submission
 from models.personality_models import PersonalitySubmission
-
-# Modèles et services de projet
 from models.project_models import ProjectCreate, DocumentCreate, ChatMessage, DocumentDeleteRequest
 from services.project_service import (
     create_project,
@@ -56,12 +53,12 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# Stockage en mémoire pour certains cas (pour tests uniquement)
+# Stockage en mémoire pour tests uniquement
 documents_store = {}
 personality_store = {}
-# Pour gérer l'historique de conversation par utilisateur et par projet
 conversation_history = {}
 
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 security = HTTPBearer()
 
 def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -85,43 +82,46 @@ class SearchQuery(BaseModel):
 def health_check():
     return {"status": "ok"}
 
+# Endpoints d'ingestion : on ajoute un paramètre optionnel project_id
 @app.post("/parse-pdf")
 async def parse_pdf_endpoint(
     file: UploadFile = File(...),
-    user_id: str = Depends(verify_firebase_token)
+    user_id: str = Depends(verify_firebase_token),
+    project_id: str = None
 ):
     file_location = f"/tmp/{file.filename}"
     with open(file_location, "wb") as f:
         f.write(await file.read())
     chunks = parse_pdf(file_location, chunk_size=500, chunk_overlap=50)
     embeddings = batch_get_embeddings(chunks)
-    meta_list = [{"filename": file.filename, "chunk": c} for c in chunks]
+    # On ajoute project_id dans les métadonnées
+    meta_list = [{"filename": file.filename, "chunk": c, "project_id": project_id} for c in chunks]
     faiss_store.add_embeddings(embeddings, meta_list)
-    # On n'utilise pas ici documents_store pour la persistance
     return {
         "filename": file.filename,
         "num_chunks": len(chunks),
         "sample_chunk": chunks[0] if chunks else "",
-        "info": f"Stored in FAISS. user_id={user_id}"
+        "info": f"Stored in FAISS. user_id={user_id}, project_id={project_id}"
     }
 
 @app.post("/parse-csv")
 async def parse_csv_endpoint(
     file: UploadFile = File(...),
-    user_id: str = Depends(verify_firebase_token)
+    user_id: str = Depends(verify_firebase_token),
+    project_id: str = None
 ):
     file_location = f"/tmp/{file.filename}"
     with open(file_location, "wb") as f:
         f.write(await file.read())
     chunks = parse_csv(file_location, chunk_size=500, chunk_overlap=50)
     embeddings = batch_get_embeddings(chunks)
-    meta_list = [{"filename": file.filename, "chunk": c} for c in chunks]
+    meta_list = [{"filename": file.filename, "chunk": c, "project_id": project_id} for c in chunks]
     faiss_store.add_embeddings(embeddings, meta_list)
     return {
         "filename": file.filename,
         "num_chunks": len(chunks),
         "sample_chunk": chunks[0] if chunks else "",
-        "info": f"Stored in FAISS. user_id={user_id}"
+        "info": f"Stored in FAISS. user_id={user_id}, project_id={project_id}"
     }
 
 @app.post("/search_faiss")
@@ -138,7 +138,6 @@ def search_faiss_endpoint(
         "user_id": user_id
     }
 
-# Endpoint général de chat (non lié à un projet)
 @app.post("/chat")
 def chat_endpoint(
     payload: AskQuery,
@@ -178,7 +177,6 @@ def submit_mbti_quiz(
     from services.mbti_service import process_quiz_submission
     try:
         personality_type = process_quiz_submission(quiz_resp)
-        # Stockage en mémoire pour usage instantané
         personality_store[user_id] = personality_type
         return {
             "user_id": user_id,
@@ -193,7 +191,6 @@ def submit_personality(
     payload: PersonalitySubmission,
     user_id: str = Depends(verify_firebase_token)
 ):
-    # On s'assure d'utiliser l'uid vérifié
     payload.user_id = user_id
     personality_store[user_id] = payload.personality_type
     from firebase_admin import firestore
@@ -207,8 +204,6 @@ def submit_personality(
         "user_id": user_id,
         "personality_type": payload.personality_type
     }
-
-# Endpoints pour la gestion des projets
 
 @app.post("/projects")
 def create_project_endpoint(
@@ -295,7 +290,8 @@ def project_chat_endpoint(
         temperature=payload.temperature,
         user_id=user_id,
         personality_store=personality_store,
-        conversation_history=conversation_history[user_id][project_id]
+        conversation_history=conversation_history[user_id][project_id],
+        project_id=project_id  # transmission du project_id pour filtrer le contexte
     )
     conversation_history[user_id][project_id].append({"role": "assistant", "content": response_data["answer"]})
     return response_data
