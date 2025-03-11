@@ -8,7 +8,7 @@ Make sure your service account key JSON is placed at:
 
 import os
 import firebase_admin
-from firebase_admin import credentials, auth
+from firebase_admin import credentials, auth, firestore
 
 service_account_path = os.path.join(
     os.path.dirname(__file__), 
@@ -17,3 +17,4 @@ service_account_path = os.path.join(
 
 cred = credentials.Certificate(service_account_path)
 firebase_app = firebase_admin.initialize_app(cred)
+db = firestore.client()

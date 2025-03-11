@@ -1,6 +1,8 @@
+# mvp/backend/app.py
+
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -16,48 +18,53 @@ from data_ingestion.csv_ingestion import parse_csv
 from retrieval.faiss_store import faiss_store
 from retrieval.embeddings import batch_get_embeddings, get_embedding
 
-# Chat, MBTI, models
+# Chat, MBTI, modèles
 from models.chat_models import AskQuery
 from services.chat_service import chat_with_llm
 from models.mbti_models import MBTIQuizResponse
 from services.mbti_service import get_mbti_questions, process_quiz_submission
 from models.personality_models import PersonalitySubmission
 
+# Modèles et services de projet
+from models.project_models import ProjectCreate, DocumentCreate, ChatMessage, DocumentDeleteRequest
+from services.project_service import (
+    create_project,
+    list_projects,
+    get_project,
+    add_document_to_project,
+    list_documents,
+    delete_document_from_project,
+    delete_documents_from_project,
+    add_chat_message,
+    get_chat_history
+)
+
 load_dotenv()
 
 app = FastAPI()
 
-# ---------- CORS ----------
-
-# Allow your frontend's origin, e.g. http://127.0.0.1:5173 (Vite default)
 origins = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
-    # add other origins if needed
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,          # or ["*"] for wide-open
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],            # e.g. ["GET", "POST", ...] or "*"
+    allow_methods=["*"],
     allow_headers=["*"]
 )
 
-# ---------- In-memory Stores ----------
-documents_store = {}         # For debug: filename -> list of {chunk, embedding}
-personality_store = {}        # user_id -> MBTI type
-conversation_history = {}     # user_id -> list of { "role": "user"/"assistant", "content": "..." }
+# Stockage en mémoire pour certains cas (pour tests uniquement)
+documents_store = {}
+personality_store = {}
+# Pour gérer l'historique de conversation par utilisateur et par projet
+conversation_history = {}
 
-# ---------- Security Dependency ----------
 security = HTTPBearer()
 
 def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """
-    Verifies the Firebase ID token.
-    If valid, returns the user_id (Firebase UID).
-    Raises 401 otherwise.
-    """
     token = credentials.credentials
     try:
         decoded_token = auth.verify_id_token(token)
@@ -70,45 +77,27 @@ def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(se
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Auth error: {str(e)}")
 
-# ---------- Models ----------
 class SearchQuery(BaseModel):
     query: str
     top_k: int = 3
 
-# ---------- 1. Health Check ----------
 @app.get("/health")
 def health_check():
-    """
-    Simple endpoint to ensure the server is up.
-    """
     return {"status": "ok"}
 
-# ---------- 2. Document Ingestion Endpoints ----------
 @app.post("/parse-pdf")
 async def parse_pdf_endpoint(
     file: UploadFile = File(...),
     user_id: str = Depends(verify_firebase_token)
 ):
-    """
-    Parses a PDF, chunks & embeds it, then stores in FAISS.
-    Also keeps a debug copy in documents_store.
-    """
     file_location = f"/tmp/{file.filename}"
     with open(file_location, "wb") as f:
         f.write(await file.read())
-
     chunks = parse_pdf(file_location, chunk_size=500, chunk_overlap=50)
     embeddings = batch_get_embeddings(chunks)
-
     meta_list = [{"filename": file.filename, "chunk": c} for c in chunks]
     faiss_store.add_embeddings(embeddings, meta_list)
-
-    # For debugging / optional usage
-    doc_data = []
-    for c, emb in zip(chunks, embeddings):
-        doc_data.append({"chunk": c, "embedding": emb})
-    documents_store[file.filename] = doc_data
-
+    # On n'utilise pas ici documents_store pour la persistance
     return {
         "filename": file.filename,
         "num_chunks": len(chunks),
@@ -121,25 +110,13 @@ async def parse_csv_endpoint(
     file: UploadFile = File(...),
     user_id: str = Depends(verify_firebase_token)
 ):
-    """
-    Parses a CSV, chunks & embeds it, then stores in FAISS.
-    Also keeps a debug copy in documents_store.
-    """
     file_location = f"/tmp/{file.filename}"
     with open(file_location, "wb") as f:
         f.write(await file.read())
-
     chunks = parse_csv(file_location, chunk_size=500, chunk_overlap=50)
     embeddings = batch_get_embeddings(chunks)
-
     meta_list = [{"filename": file.filename, "chunk": c} for c in chunks]
     faiss_store.add_embeddings(embeddings, meta_list)
-
-    doc_data = []
-    for c, emb in zip(chunks, embeddings):
-        doc_data.append({"chunk": c, "embedding": emb})
-    documents_store[file.filename] = doc_data
-
     return {
         "filename": file.filename,
         "num_chunks": len(chunks),
@@ -147,15 +124,11 @@ async def parse_csv_endpoint(
         "info": f"Stored in FAISS. user_id={user_id}"
     }
 
-# ---------- 3. Search Endpoint ----------
 @app.post("/search_faiss")
 def search_faiss_endpoint(
     payload: SearchQuery,
     user_id: str = Depends(verify_firebase_token)
 ):
-    """
-    Performs a similarity search over the FAISS index.
-    """
     query_emb = get_embedding(payload.query)
     results = faiss_store.search(query_emb, top_k=payload.top_k)
     return {
@@ -165,58 +138,31 @@ def search_faiss_endpoint(
         "user_id": user_id
     }
 
-# ---------- 4. Chat Endpoint ----------
+# Endpoint général de chat (non lié à un projet)
 @app.post("/chat")
 def chat_endpoint(
     payload: AskQuery,
     user_id: str = Depends(verify_firebase_token)
 ):
-    """
-    Receives a user query, classifies it, retrieves context from FAISS,
-    applies different prompts based on question type, and calls the LLM.
-    Conversation history is stored in memory.
-    """
     if user_id not in conversation_history:
-        conversation_history[user_id] = []
-
-    # Append new user message
-    conversation_history[user_id].append({"role": "user", "content": payload.query})
-
-    # Hand off to chat service
+        conversation_history[user_id] = {}
+    if "global" not in conversation_history[user_id]:
+        conversation_history[user_id]["global"] = []
+    conversation_history[user_id]["global"].append({"role": "user", "content": payload.query})
     response_data = chat_with_llm(
         query=payload.query,
         top_k=payload.top_k,
         temperature=payload.temperature,
         user_id=user_id,
         personality_store=personality_store,
-        conversation_history=conversation_history[user_id]
+        conversation_history=conversation_history[user_id]["global"]
     )
-
-    # Append assistant response
-    conversation_history[user_id].append({"role": "assistant", "content": response_data["answer"]})
-
+    conversation_history[user_id]["global"].append({"role": "assistant", "content": response_data["answer"]})
     return response_data
 
-# ---------- 5. Debug Endpoint for Documents ----------
-@app.get("/documents_store")
-def get_documents_store(user_id: str = Depends(verify_firebase_token)):
-    """
-    (Optional) Debug endpoint showing the ingested documents in memory.
-    """
-    summary = {}
-    for filename, chunk_list in documents_store.items():
-        summary[filename] = {
-            "total_chunks": len(chunk_list),
-            "first_100_chars_of_first_chunk": chunk_list[0]["chunk"][:100] if chunk_list else ""
-        }
-    return {"user_id": user_id, "documents": summary}
-
-# ---------- 6. MBTI Quiz Endpoints ----------
 @app.get("/mbti_quiz")
 def mbti_quiz_questions(user_id: str = Depends(verify_firebase_token)):
-    """
-    Returns a small set of MBTI questions.
-    """
+    from services.mbti_service import get_mbti_questions
     questions = get_mbti_questions()
     return {
         "user_id": user_id,
@@ -229,16 +175,15 @@ def submit_mbti_quiz(
     quiz_resp: MBTIQuizResponse,
     user_id: str = Depends(verify_firebase_token)
 ):
-    """
-    Submits answers to the MBTI quiz, calculates the personality, and stores it for the user.
-    """
+    from services.mbti_service import process_quiz_submission
     try:
         personality_type = process_quiz_submission(quiz_resp)
-        personality_store[quiz_resp.user_id] = personality_type
+        # Stockage en mémoire pour usage instantané
+        personality_store[user_id] = personality_type
         return {
-            "user_id": quiz_resp.user_id,
+            "user_id": user_id,
             "personality_type": personality_type,
-            "message": "Personality stored successfully!"
+            "message": "Personality computed. Please confirm to store permanently."
         }
     except ValueError as e:
         return {"error": str(e)}
@@ -248,12 +193,120 @@ def submit_personality(
     payload: PersonalitySubmission,
     user_id: str = Depends(verify_firebase_token)
 ):
-    """
-    Directly sets the user's personality description in personality_store.
-    """
-    personality_store[payload.user_id] = payload.personality_type
+    # On s'assure d'utiliser l'uid vérifié
+    payload.user_id = user_id
+    personality_store[user_id] = payload.personality_type
+    from firebase_admin import firestore
+    db = firestore.client()
+    db.collection("users").document(user_id).set(
+        {"personality_type": payload.personality_type},
+        merge=True
+    )
     return {
-        "message": "Personality stored",
-        "user_id": payload.user_id,
+        "message": "Personality stored permanently",
+        "user_id": user_id,
         "personality_type": payload.personality_type
     }
+
+# Endpoints pour la gestion des projets
+
+@app.post("/projects")
+def create_project_endpoint(
+    project: ProjectCreate, 
+    user_id: str = Depends(verify_firebase_token)
+):
+    new_project = create_project(user_id, project.dict())
+    return new_project
+
+@app.get("/projects")
+def list_projects_endpoint(user_id: str = Depends(verify_firebase_token)):
+    projects = list_projects(user_id)
+    return {"projects": projects}
+
+@app.get("/projects/{project_id}")
+def get_project_endpoint(project_id: str, user_id: str = Depends(verify_firebase_token)):
+    project = get_project(project_id)
+    if not project or project["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+@app.post("/projects/{project_id}/documents")
+def add_document_endpoint(
+    project_id: str,
+    document: DocumentCreate,
+    user_id: str = Depends(verify_firebase_token)
+):
+    project = get_project(project_id)
+    if not project or project["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    new_doc = add_document_to_project(project_id, document.dict())
+    return new_doc
+
+@app.get("/projects/{project_id}/documents")
+def list_documents_endpoint(project_id: str, user_id: str = Depends(verify_firebase_token)):
+    project = get_project(project_id)
+    if not project or project["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    docs = list_documents(project_id)
+    return {"documents": docs}
+
+@app.delete("/projects/{project_id}/documents/{document_id}")
+def delete_document_endpoint(
+    project_id: str,
+    document_id: str,
+    user_id: str = Depends(verify_firebase_token)
+):
+    project = get_project(project_id)
+    if not project or project["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    result = delete_document_from_project(project_id, document_id)
+    return result
+
+@app.delete("/projects/{project_id}/documents")
+def delete_documents_endpoint(
+    project_id: str,
+    payload: DocumentDeleteRequest,
+    user_id: str = Depends(verify_firebase_token)
+):
+    project = get_project(project_id)
+    if not project or project["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    results = delete_documents_from_project(project_id, payload.document_ids)
+    return {"deleted": results}
+
+# Endpoint de chat pour un projet spécifique
+@app.post("/projects/{project_id}/chat")
+def project_chat_endpoint(
+    project_id: str,
+    payload: AskQuery,
+    user_id: str = Depends(verify_firebase_token)
+):
+    project = get_project(project_id)
+    if not project or project["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if user_id not in conversation_history:
+        conversation_history[user_id] = {}
+    if project_id not in conversation_history[user_id]:
+        conversation_history[user_id][project_id] = []
+    conversation_history[user_id][project_id].append({"role": "user", "content": payload.query})
+    response_data = chat_with_llm(
+        query=payload.query,
+        top_k=payload.top_k,
+        temperature=payload.temperature,
+        user_id=user_id,
+        personality_store=personality_store,
+        conversation_history=conversation_history[user_id][project_id]
+    )
+    conversation_history[user_id][project_id].append({"role": "assistant", "content": response_data["answer"]})
+    return response_data
+
+@app.get("/projects/{project_id}/chat")
+def get_project_chat_history_endpoint(
+    project_id: str, 
+    user_id: str = Depends(verify_firebase_token)
+):
+    project = get_project(project_id)
+    if not project or project["user_id"] != user_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+    history = get_chat_history(project_id)
+    return {"chat_history": history}

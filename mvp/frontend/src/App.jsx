@@ -1,3 +1,4 @@
+// mvp/frontend/src/App.jsx
 import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -10,22 +11,26 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebaseClient";
 
+// Import des pages
 import MarketingHome from "./pages/MarketingHome";
 import Login from "./pages/Login";
+import Projects from "./pages/Projects";
+import ProjectDetail from "./pages/ProjectDetail";
+import ProjectChat from "./pages/ProjectChat";
 import MBTIQuiz from "./pages/MBTIQuiz";
-import FileUpload from "./pages/FileUpload";
-import Chat from "./pages/Chat";
 
+// Import des composants communs
 import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
 
-function AppRoutes({ user, token }) {
+function AppRoutes({ user, token, authInitialized }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const inWebapp = location.pathname.startsWith("/webapp");
 
-  // Protected route wrapper for WebApp flow pages.
   function PrivateRoute({ children }) {
+    if (!authInitialized) {
+      return <div>Loading...</div>;
+    }
     if (!user) {
       return <Navigate to="/webapp/login" />;
     }
@@ -36,32 +41,43 @@ function AppRoutes({ user, token }) {
     <>
       <NavBar inWebapp={inWebapp} />
       <Routes>
-        {/* Marketing homepage */}
+        {/* Page marketing accessible à tous */}
         <Route path="/" element={<MarketingHome />} />
 
-        {/* WebApp flow */}
+        {/* Route de connexion */}
         <Route path="/webapp/login" element={<Login />} />
+
+        {/* Routes de l'application protégées */}
+        <Route
+          path="/webapp/projects"
+          element={
+            <PrivateRoute>
+              <Projects token={token} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/webapp/projects/:project_id"
+          element={
+            <PrivateRoute>
+              <ProjectDetail token={token} />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/webapp/projects/:project_id/chat"
+          element={
+            <PrivateRoute>
+              <ProjectChat token={token} />
+            </PrivateRoute>
+          }
+        />
+        {/* Route pour accéder au test MBTI */}
         <Route
           path="/webapp/mbti"
           element={
             <PrivateRoute>
               <MBTIQuiz token={token} />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/webapp/upload"
-          element={
-            <PrivateRoute>
-              <FileUpload token={token} />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/webapp/chat"
-          element={
-            <PrivateRoute>
-              <Chat token={token} />
             </PrivateRoute>
           }
         />
@@ -77,10 +93,12 @@ function AppRoutes({ user, token }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState("");
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   useEffect(() => {
-    onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      setAuthInitialized(true);
       if (firebaseUser) {
         const t = await firebaseUser.getIdToken();
         setToken(t);
@@ -88,11 +106,12 @@ export default function App() {
         setToken("");
       }
     });
+    return unsubscribe;
   }, []);
 
   return (
     <Router>
-      <AppRoutes user={user} token={token} />
+      <AppRoutes user={user} token={token} authInitialized={authInitialized} />
     </Router>
   );
 }

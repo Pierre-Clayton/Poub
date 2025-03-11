@@ -18,7 +18,8 @@ export default function Login() {
       } else {
         await registerUser(email, pass);
       }
-      navigate("/webapp/mbti");
+      // Redirige vers la liste des projets une fois connecté
+      navigate("/webapp/projects");
     } catch (err) {
       setError(err.message || "Authentication error");
     }
