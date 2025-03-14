@@ -2,8 +2,8 @@
 
 import numpy as np
 from typing import List, Dict, Any
-from retrieval.embeddings import get_embedding
-from retrieval.utils import cosine_similarity
+from app.retrieval.embeddings import get_embedding
+from app.retrieval.utils import cosine_similarity
 
 def search_in_documents_store(
     query: str, 

@@ -1,4 +1,4 @@
-from models.mbti_models import MBTIQuestion, MBTIQuizResponse
+from app.models.mbti_models import MBTIQuestion, MBTIQuizResponse
 from openai import OpenAI
 import os
 
@@ -12,9 +12,9 @@ ANSWER_MAPPING = {
     2: {"A": "S", "B": "N"},
     3: {"A": "T", "B": "F"},
     4: {"A": "J", "B": "P"},
-    5: {"A": "Action", "B": "Reflection"},      # Example: "Action-oriented" vs. "Reflective"
-    6: {"A": "Risk", "B": "Security"},           # Example: "Risk-taker" vs. "Security-oriented"
-    7: {"A": "Achievement", "B": "Harmony"}       # Example: "Achievement-driven" vs. "Harmony-seeking"
+    5: {"A": "Action-oriented", "B": "Reflection"},      # Example: "Action-oriented" vs. "Reflective"
+    6: {"A": "Risk-taker", "B": "Security-oriented"},           # Example: "Risk-taker" vs. "Security-oriented"
+    7: {"A": "Achievement-driven", "B": "Harmony-seeking"}       # Example: "Achievement-driven" vs. "Harmony-seeking"
 }
 
 # List of MBTI questions in English with generic answer options "A" and "B".
@@ -80,6 +80,14 @@ def process_quiz_submission(quiz_response: MBTIQuizResponse) -> str:
 
     # Build the prompt for the LLM with the mapped answers.
     prompt = (
+        "Here are the questions of the personnality test:\n"
+        f"1) {QUESTIONS[0].question_text}\n"
+        f"2) {QUESTIONS[1].question_text}\n"
+        f"3) {QUESTIONS[2].question_text}\n"
+        f"4) {QUESTIONS[3].question_text}\n"
+        f"5) {QUESTIONS[4].question_text}\n"
+        f"6) {QUESTIONS[5].question_text}\n"
+        f"7) {QUESTIONS[6].question_text}\n\n"
         "Here are the user's responses for the personality test:\n"
         f"1) {mapped_answers[1]}\n"
         f"2) {mapped_answers[2]}\n"

@@ -40,7 +40,7 @@ export default function MarketingHome() {
           We integrate AI-driven storytelling into project management to transform traditional workflows into intuitive, engaging, and structured narratives.
         </p>
         <button
-          onClick={() => window.location.href = "/webapp/login"}
+          onClick={() => window.open("https://chat.projectpath.ai", "_blank")}
           style={{
             padding: "1rem 2rem",
             background: "#3162ff",
@@ -428,8 +428,10 @@ export default function MarketingHome() {
             />
             <h3 style={{ color: "#3162ff" }}>ROSS MARSHALL</h3>
             <p style={{ lineHeight: "1.6", fontSize: "1rem" }}>
-              Chairman &amp; Communications<br />
-              A Harvard Business School graduate, Ross leverages his vast experience to shape our strategic direction and community engagement.
+            Board Chair &amp; CFO <br />
+
+ 
+A Harvard Business School graduate, Ross leverages his extensive experience to drive growth, optimize financial operations, and enhance organizational impact.
             </p>
           </div>
           <div style={{ flex: "1 1 200px", padding: "1rem", textAlign: "center" }}>

@@ -1,21 +1,14 @@
-// mvp/frontend/src/pages/MBTIQuiz.jsx
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from "../config";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebaseClient";
 
 export default function MBTIQuiz({ token }) {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [result, setResult] = useState(null);
   const navigate = useNavigate();
-  const [uid, setUid] = useState(null);
 
   useEffect(() => {
-    // Récupérer l'uid depuis Firebase Auth
-    if (auth.currentUser) {
-      setUid(auth.currentUser.uid);
-    }
     fetch(`${API_BASE_URL}/mbti_quiz`, {
       headers: {
         Authorization: `Bearer ${token}`
@@ -33,39 +26,24 @@ export default function MBTIQuiz({ token }) {
 
   async function handleSubmit() {
     try {
-      // Envoyer les réponses au quiz
       const res = await fetch(`${API_BASE_URL}/mbti_quiz`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ user_id: uid, answers })
+        body: JSON.stringify({ user_id: "some_user", answers })
       });
       const data = await res.json();
       setResult(data);
-      // Stocker définitivement le résultat MBTI
-      const personalityRes = await fetch(`${API_BASE_URL}/submit_personality`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: uid,
-          personality_type: data.personality_type || "Undefined"
-        })
-      });
-      const personalityData = await personalityRes.json();
-      console.log("Personality stored:", personalityData);
-      navigate("/webapp/projects");
+      navigate("/webapp/upload");
     } catch (err) {
       console.error(err);
     }
   }
 
   function handleSkip() {
-    navigate("/webapp/projects");
+    navigate("/webapp/upload");
   }
 
   return (
@@ -75,7 +53,9 @@ export default function MBTIQuiz({ token }) {
       alignItems: "center",
       justifyContent: "center",
       background: "linear-gradient(135deg, #f0f8ff, #e6f2ff)",
-      padding: "2rem"
+      padding: "2rem",
+      fontFamily: "'Roboto', 'Helvetica Neue', Arial, sans-serif",
+      color: "#333"
     }}>
       <div style={{
         width: "100%",
