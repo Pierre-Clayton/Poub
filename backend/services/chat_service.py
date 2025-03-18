@@ -4,10 +4,10 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
-from app.retrieval.faiss_store import faiss_store
-from app.retrieval.embeddings import get_embedding
+from backend.retrieval.faiss_store import faiss_store
+from backend.retrieval.embeddings import get_embedding
 
-from app.chat_agent import classify_query_type, PROMPT_TEMPLATES
+from backend.chat_agent import classify_query_type, PROMPT_TEMPLATES
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))

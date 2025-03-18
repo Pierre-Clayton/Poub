@@ -1,7 +1,7 @@
 # backend/data_ingestion/csv_ingestion.py
 
 import csv
-from app.data_ingestion.ingestion import chunk_text
+from data_ingestion.ingestion import chunk_text
 from pathlib import Path
 
 def parse_csv(file_path: str, chunk_size=500, chunk_overlap=50) -> list[str]:

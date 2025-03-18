@@ -1,14 +1,10 @@
+// mvp/frontend/src/pages/Chat.jsx
+
 import React, { useState } from "react";
 import { API_BASE_URL } from "../config";
 import { useNavigate } from "react-router-dom";
-import { logout } from "../firebaseClient";
+import { Auth } from "aws-amplify";
 import ReactMarkdown from "react-markdown";
-
-// Assurez-vous d'ajouter cette règle CSS globale dans votre fichier CSS :
-// @keyframes spin {
-//   from { transform: rotate(0deg); }
-//   to { transform: rotate(360deg); }
-// }
 
 function Spinner() {
   return (
@@ -31,7 +27,6 @@ export default function Chat({ token }) {
 
   async function handleSend() {
     if (!query.trim() || isLoading) return;
-    // Ajout immédiat du message utilisateur
     const userMessage = { role: "user", content: query };
     setChatLog(old => [...old, userMessage]);
     setIsLoading(true);
@@ -66,7 +61,7 @@ export default function Chat({ token }) {
 
   async function handleLogout() {
     try {
-      await logout();
+      await Auth.signOut();
       navigate("/");
     } catch (err) {
       console.error(err);
@@ -83,12 +78,12 @@ export default function Chat({ token }) {
       background: "linear-gradient(135deg, #f0f8ff, #e6f2ff)",
       padding: "1rem"
     }}>
-      {/* Header épuré */}
       <header style={{
         padding: "1rem",
         textAlign: "center",
         borderBottom: "1px solid #ccc",
-        marginBottom: "1rem"
+        marginBottom: "1rem",
+        position: "relative"
       }}>
         <h2 style={{ margin: 0, fontSize: "2rem", color: "#3162ff" }}>Chat</h2>
         <button onClick={handleLogout} style={{
@@ -106,7 +101,6 @@ export default function Chat({ token }) {
         </button>
       </header>
 
-      {/* Zone de chat à hauteur fixe */}
       <div style={{
         flex: "1",
         maxHeight: "76vh",
@@ -125,7 +119,7 @@ export default function Chat({ token }) {
             borderRadius: "8px"
           }}>
             <strong style={{ textTransform: "capitalize" }}>
-              {msg.role === "assistant" ? "ProjectPath LM" : "You"}:
+              {msg.role === "assistant" ? "ProjectPath LM" : "You"}
             </strong>{" "}
             <ReactMarkdown>{msg.content}</ReactMarkdown>
           </div>
@@ -143,7 +137,6 @@ export default function Chat({ token }) {
         )}
       </div>
 
-      {/* Zone d'envoi */}
       <div style={{
         padding: "1rem 2rem",
         borderTop: "1px solid #ccc",
@@ -155,16 +148,13 @@ export default function Chat({ token }) {
           placeholder="Ask something..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSend();
-          }}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
           disabled={isLoading}
           style={{
             flex: "1",
             padding: "0.75rem",
-            fontSize: "1rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc"
+            border: "1px solid #ccc",
+            borderRadius: "4px"
           }}
         />
         <button onClick={handleSend} disabled={isLoading} style={{

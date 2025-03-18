@@ -4,6 +4,9 @@ fastapi
 python-multipart
 sentence-transformers
 faiss-cpu
-openai
 python-dotenv
-firebase-admin
+boto3
+botocore
+jwt
+PyJWT
+requests

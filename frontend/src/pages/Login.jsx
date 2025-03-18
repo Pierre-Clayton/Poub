@@ -1,5 +1,7 @@
+// mvp/frontend/src/pages/Login.jsx
+
 import React, { useState } from "react";
-import { signIn, registerUser } from "../firebaseClient";
+import { Auth } from "aws-amplify";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
@@ -14,13 +16,18 @@ export default function Login() {
     setError("");
     try {
       if (mode === "login") {
-        await signIn(email, pass);
+        await Auth.signIn(email, pass);
       } else {
-        await registerUser(email, pass);
+        await Auth.signUp({
+          username: email,
+          password: pass,
+          attributes: { email }
+        });
+        // Optionnel : Vous pouvez demander à l'utilisateur de confirmer son compte
       }
       navigate("/webapp/mbti");
     } catch (err) {
-      setError(err.message || "Authentication error");
+      setError(err.message || "Erreur d'authentification");
     }
   }
 
@@ -42,7 +49,7 @@ export default function Login() {
         textAlign: "center"
       }}>
         <h2 style={{ marginBottom: "1.5rem", color: "#3162ff" }}>
-          {mode === "login" ? "Login" : "Register"}
+          {mode === "login" ? "Connexion" : "Inscription"}
         </h2>
         {error && <p style={{ color: "red", marginBottom: "1rem" }}>{error}</p>}
         <form onSubmit={handleSubmit}>
@@ -56,7 +63,7 @@ export default function Login() {
           />
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Mot de passe"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
             required
@@ -73,7 +80,7 @@ export default function Login() {
             cursor: "pointer",
             marginBottom: "1rem"
           }}>
-            {mode === "login" ? "Login" : "Register"}
+            {mode === "login" ? "Connexion" : "Inscription"}
           </button>
         </form>
         <button
@@ -88,8 +95,8 @@ export default function Login() {
           }}
         >
           {mode === "login"
-            ? "Need an account? Register"
-            : "Already have an account? Login"}
+            ? "Pas encore de compte ? Inscrivez-vous"
+            : "Vous avez déjà un compte ? Connectez-vous"}
         </button>
       </div>
     </div>

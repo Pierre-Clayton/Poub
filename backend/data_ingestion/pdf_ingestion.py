@@ -2,7 +2,7 @@
 
 import PyPDF2
 from pathlib import Path
-from app.data_ingestion.ingestion import chunk_text
+from data_ingestion.ingestion import chunk_text
 
 def parse_pdf(file_path: str, chunk_size=500, chunk_overlap=50) -> list[str]:
     """

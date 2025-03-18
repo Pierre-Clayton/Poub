@@ -1,4 +1,4 @@
-from app.models.mbti_models import MBTIQuestion, MBTIQuizResponse
+from backend.models.mbti_models import MBTIQuestion, MBTIQuizResponse
 from openai import OpenAI
 import os
 
